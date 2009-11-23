@@ -1,84 +1,115 @@
-require 'rubygems'
-Gem::manage_gems
+require "rubygems"
+require "rake/gempackagetask"
+require "rake/rdoctask"
 
-require 'rake/gempackagetask'
-#require 'rake/testtask'
-require 'rake/packagetask'
-require 'rake/rdoctask'
+task :default => :test
 
-$LOAD_PATH << './lib'
-require 'daemons'
+require "rake/testtask"
+Rake::TestTask.new do |t|
+  t.libs << "test"
+  t.test_files = FileList["test/**/*_test.rb"]
+  t.verbose = true
+end
 
-
-PKG_NAME = "daemons"
-
-PKG_FILES = FileList[
-  "Rakefile", "Releases", "TODO", "README", "LICENSE",
-  "setup.rb",
-  "lib/**/*.rb",
-  #"test/**/*",
-  "examples/**/*"
-]
-#PKG_FILES.exclude(%r(^test/tmp/.+))
-PKG_FILES.exclude(%r(\.pid$))
-PKG_FILES.exclude(%r(\.log$))
-
+# This builds the actual gem. For details of what all these options
+# mean, and other ones you can add, check the documentation here:
+#
+#   http://rubygems.org/read/chapter/20
+#
 spec = Gem::Specification.new do |s|
-  s.name = PKG_NAME
-  s.version = Daemons::VERSION
-  s.author = "Thomas Uehlinger"
-  s.email = "th.uehlinger@gmx.ch"
+  
+  # Change these as appropriate
+  s.name              = "daemons"
+  s.version           = "0.1.1"
+  s.summary           = "Daemons library, with added stabby death"
+  s.author            = "Matt House"
+  s.email             = "matt@theshadowaspect.com"
+  s.homepage          = "http://theshadowaspect.com"
+
+  s.has_rdoc          = true
+  s.extra_rdoc_files  = %w(README)
+  s.rdoc_options      = %w(--main README)
+
+  # Add any extra files to include in the gem
+  s.files             = %w(LICENSE README Releases setup.rb) + Dir.glob("{test,lib}/**/*")
+   
+  s.require_paths     = ["lib"]
+  
+  # If you want to depend on other gems, add them here, along with any
+  # relevant versions
+  # s.add_dependency("some_other_gem", "~> 0.1.0")
+  
+  # If your tests use any gems, include them here
+  # s.add_development_dependency("mocha")
+
+  # If you want to publish automatically to rubyforge, you'll may need
+  # to tweak this, and the publishing task below too.
   s.rubyforge_project = "daemons"
-  s.homepage = "http://daemons.rubyforge.org"
-  s.platform  = Gem::Platform::RUBY
-  s.summary = "A toolkit to create and control daemons in different ways"
-  s.description = <<-EOF
-    Daemons provides an easy way to wrap existing ruby scripts (for example a self-written server) 
-    to be run as a daemon and to be controlled by simple start/stop/restart commands.
-    
-    You can also call blocks as daemons and control them from the parent or just daemonize the current
-    process.
-    
-    Besides this basic functionality, daemons offers many advanced features like exception 
-    backtracing and logging (in case your ruby script crashes) and monitoring and automatic
-    restarting of your processes if they crash.
-  EOF
-    
-  #s.files = FileList["{test,lib}/**/*"].exclude("rdoc").to_a
-  s.files = PKG_FILES
-  s.require_path = "lib"
-  s.autorequire = "daemons"
-  s.has_rdoc = true
-  s.extra_rdoc_files = ["README", "Releases", "TODO"]
 end
 
+# This task actually builds the gem. We also regenerate a static 
+# .gemspec file, which is useful if something (i.e. GitHub) will
+# be automatically building a gem for this project. If you're not
+# using GitHub, edit as appropriate.
 Rake::GemPackageTask.new(spec) do |pkg|
-  pkg.need_tar = true
+  pkg.gem_spec = spec
+  
+  # Generate the gemspec file for github.
+  file = File.dirname(__FILE__) + "/#{spec.name}.gemspec"
+  File.open(file, "w") {|f| f << spec.to_ruby }
 end
 
+# Generate documentation
+Rake::RDocTask.new do |rd|
+  rd.main = "README"
+  rd.rdoc_files.include("README", "lib/**/*.rb")
+  rd.rdoc_dir = "rdoc"
+end
 
-#Rake::PackageTask.new("package") do |p|
-#  p.name = PKG_NAME
-#  p.version = Daemons::VERSION
-#  p.need_tar = true
-#  p.need_zip = true
-#  p.package_files = PKG_FILES
-#end
+desc 'Clear out RDoc and generated packages'
+task :clean => [:clobber_rdoc, :clobber_package] do
+  rm "#{spec.name}.gemspec"
+end
 
+# If you want to publish to RubyForge automatically, here's a simple 
+# task to help do that. If you don't, just get rid of this.
+# Be sure to set up your Rubyforge account details with the Rubyforge
+# gem; you'll need to run `rubyforge setup` and `rubyforge config` at
+# the very least.
+begin
+  require "rake/contrib/sshpublisher"
+  namespace :rubyforge do
+    
+    desc "Release gem and RDoc documentation to RubyForge"
+    task :release => ["rubyforge:release:gem", "rubyforge:release:docs"]
+    
+    namespace :release do
+      desc "Release a new version of this gem"
+      task :gem => [:package] do
+        require 'rubyforge'
+        rubyforge = RubyForge.new
+        rubyforge.configure
+        rubyforge.login
+        rubyforge.userconfig['release_notes'] = spec.summary
+        path_to_gem = File.join(File.dirname(__FILE__), "pkg", "#{spec.name}-#{spec.version}.gem")
+        puts "Publishing #{spec.name}-#{spec.version.to_s} to Rubyforge..."
+        rubyforge.add_release(spec.rubyforge_project, spec.name, spec.version.to_s, path_to_gem)
+      end
+    
+      desc "Publish RDoc to RubyForge."
+      task :docs => [:rdoc] do
+        config = YAML.load(
+            File.read(File.expand_path('~/.rubyforge/user-config.yml'))
+        )
  
-task :default => [:package]
-
-
-task :upload do
-  sh "scp -r html/* uehli@rubyforge.org:/var/www/gforge-projects/daemons"
+        host = "#{config['username']}@rubyforge.org"
+        remote_dir = "/var/www/gforge-projects/daemons/" # Should be the same as the rubyforge project name
+        local_dir = 'rdoc'
+ 
+        Rake::SshDirPublisher.new(host, remote_dir, local_dir).upload
+      end
+    end
+  end
+rescue LoadError
+  puts "Rake SshDirPublisher is unavailable or your rubyforge environment is not configured."
 end
-
-
-desc "Create the RDOC html files"
-rd = Rake::RDocTask.new("rdoc") { |rdoc|
-  rdoc.rdoc_dir = 'html'
-  rdoc.title    = "Daemons"
-  rdoc.options << '--line-numbers' << '--inline-source' << '--main' << 'README'
-  rdoc.rdoc_files.include('README', 'TODO', 'Releases')
-  rdoc.rdoc_files.include('lib/**/*.rb')
-}
