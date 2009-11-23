@@ -20,8 +20,6 @@ module Daemons
     
     
     SIGNAL = (RUBY_PLATFORM =~ /win32/ ? 'KILL' : 'TERM')
-    
-    
     def initialize(group, add_options = {}, pid = nil)
       @group = group
       @options = group.options.dup
@@ -30,7 +28,9 @@ module Daemons
       @dir_mode = @dir = @script = nil
       
       unless @pid = pid
-        if dir = pidfile_dir
+        if @options[:no_pidfiles]
+          @pid = PidMem.new
+        elsif dir = pidfile_dir
           @pid = PidFile.new(dir, @group.app_name, @group.multiple)
         else
           @pid = PidMem.new
