@@ -1,13 +1,9 @@
-
 module Daemons
   class Controller
     
     attr_reader :app_name
-    
     attr_reader :group
-    
     attr_reader :options
-    
     
     COMMANDS = [
       'start',
@@ -35,29 +31,12 @@ module Daemons
       @app_name ||= 'unknown_application'
       
       @command, @controller_part, @app_part = Controller.split_argv(argv)
-    
-      #@options[:dir_mode] ||= :script
-    
       @optparse = Optparse.new(self)
     end
     
     
-    # This function is used to do a final update of the options passed to the application
-    # before they are really used.
-    #
-    # Note that this function should only update <tt>@options</tt> and no other variables.
-    #
-    def setup_options
-      #@options[:ontop] ||= true
-    end
-    
     def run
       @options.update @optparse.parse(@controller_part).delete_if {|k,v| !v}
-      
-      setup_options()
-      
-      #pp @options
-
       @group = ApplicationGroup.new(@app_name, @options)
       @group.controller_argv = @controller_part
       @group.app_argv = @app_part
