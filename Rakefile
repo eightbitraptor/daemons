@@ -20,7 +20,7 @@ spec = Gem::Specification.new do |s|
   
   # Change these as appropriate
   s.name              = "daemons"
-  s.version           = "1.0.11"
+  s.version           = "1.0.12"
   s.summary           = "Daemons library, with added stabby death"
   s.author            = "Matt House"
   s.email             = "matt@theshadowaspect.com"
