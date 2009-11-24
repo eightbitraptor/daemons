@@ -1,7 +1,6 @@
 require 'daemons/pidfile'
 require 'daemons/pidmem'
 
-
 module Daemons
 
   class Application
@@ -18,7 +17,6 @@ module Daemons
     # my private options
     attr_reader :options
     
-    
     SIGNAL = (RUBY_PLATFORM =~ /win32/ ? 'KILL' : 'TERM')
     def initialize(group, add_options = {}, pid = nil)
       @group = group
@@ -26,7 +24,7 @@ module Daemons
       @options.update(add_options)
       
       @dir_mode = @dir = @script = nil
-      
+
       unless @pid = pid
         if @options[:no_pidfiles]
           @pid = PidMem.new
@@ -43,16 +41,16 @@ module Daemons
     end
     
     def pidfile_dir
-      Pid.dir(@dir_mode || @group.dir_mode, @dir || @group.dir, @script || @group.script)
+      Pid.dir(@dir_mode || @group.dir_mode, @dir || @group.pid_dir, @script || @group.script)
     end
     
     def output_logfile
-      logdir = options[:dir_mode] == :system ? '/var/log' : pidfile_dir
+      logdir = options[:dir_mode] == :system ? '/var/log' : @group.dir
       (options[:log_output] && logdir) ? File.join(logdir, @group.app_name + '.output') : nil
     end
     
     def logfile
-      logdir = options[:dir_mode] == :system ? '/var/log' : pidfile_dir
+      logdir = options[:dir_mode] == :system ? '/var/log' : @group.dir
       logdir ? File.join(logdir, @group.app_name + '.log') : nil
     end
     

@@ -10,11 +10,11 @@ require 'daemons'
 
 
 options = {
-             :multiple   => false,
-             :ontop      => false,
              :backtrace  => true,
              :log_output => true,
-             :monitor    => true
+             :dir_mode => :normal,
+             :dir => '/tmp/poo',
+             :pid_dir => '/tmp/poopid'
            }
            
 Daemons.run_proc('ctrl_proc.rb', options) do

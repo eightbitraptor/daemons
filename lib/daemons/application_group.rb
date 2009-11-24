@@ -4,24 +4,18 @@ module Daemons
   
     attr_reader :app_name
     attr_reader :script
-    
-    attr_reader :monitor
-    
-    #attr_reader :controller
-    
+    attr_reader :monitor    
     attr_reader :options
-    
     attr_reader :applications
     
     attr_accessor :controller_argv
     attr_accessor :app_argv
-    
     attr_accessor :dir_mode
     attr_accessor :dir
+    attr_accessor :pid_dir
     
     # true if the application is supposed to run in multiple instances
     attr_reader :multiple
-    
     
     def initialize(app_name, options = {})
       @app_name = app_name
@@ -31,19 +25,14 @@ module Daemons
         @script = File.expand_path(options[:script])
       end
       
-      #@controller = controller
-      @monitor = nil
-      
-      #options = controller.options
-      
+      @monitor = nil      
       @multiple = options[:multiple] || false
       
       @dir_mode = options[:dir_mode] || :script
       @dir = options[:dir] || ''
+      @pid_dir = options[:pid_dir] || ''
       
       @keep_pid_files = options[:keep_pid_files] || false
-      
-      #@applications = find_applications(pidfile_dir())
       @applications = []
     end
     
@@ -52,17 +41,16 @@ module Daemons
     # all running instances of the application and populates the application array.
     #
     def setup
+      puts pidfile_dir
       @applications = find_applications(pidfile_dir())
     end
     
     def pidfile_dir
-      PidFile.dir(@dir_mode, @dir, script)
+      PidFile.dir(@dir_mode, @pid_dir, script)
     end  
     
     def find_applications(dir)
       pid_files = PidFile.find_files(dir, app_name, ! @keep_pid_files)
-      
-      #pp pid_files
       
       @monitor = Monitor.find(dir, app_name + '_monitor')
       
@@ -124,18 +112,6 @@ module Daemons
         } 
       }
     end
-    
-    # def stop_all(force = false)
-    #       @monitor.stop if @monitor
-    #     
-    #       @applications.each {|a| 
-    #         if force
-    #           begin; a.stop; rescue ::Exception; end
-    #         else
-    #           a.stop
-    #         end
-    #       }
-    #     end
     
     def stop_all(force = false)
       @monitor.stop if @monitor
