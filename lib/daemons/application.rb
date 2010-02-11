@@ -209,7 +209,6 @@ module Daemons
             exit
           end
         }
-        
         p.call()
       end
       

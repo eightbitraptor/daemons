@@ -21,7 +21,6 @@ module Daemons
       # Allow an app_name to be specified. If not specified use the
       # basename of the script.
       @app_name = options[:app_name]
-      
       if options[:script]
         @script = File.expand_path(options[:script])
     
@@ -29,7 +28,6 @@ module Daemons
       end
     
       @app_name ||= 'unknown_application'
-      
       @command, @controller_part, @app_part = Controller.split_argv(argv)
       @optparse = Optparse.new(self)
     end
@@ -40,7 +38,6 @@ module Daemons
       @group = ApplicationGroup.new(@app_name, @options)
       @group.controller_argv = @controller_part
       @group.app_argv = @app_part
-      
       @group.setup
       
       case @command

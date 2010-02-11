@@ -175,21 +175,18 @@ module Daemons
     options[:app_name] = app_name
     options[:mode] = :proc
     options[:proc] = block
-    
+        
     # we do not have a script location so the the :script :dir_mode cannot be used, change it to :normal
     if [nil, :script].include? options[:dir_mode]
       options[:dir_mode] = :normal
       options[:dir] = File.expand_path('.')
     end
-    
+        
     @controller = Controller.new(options, options[:ARGV] || ARGV)
     
     @controller.catch_exceptions {
       @controller.run
     }
-    
-    # I don't think anybody will ever use @group, as this location should not be reached under non-error conditions
-    @group = @controller.group
   end
   module_function :run_proc
   

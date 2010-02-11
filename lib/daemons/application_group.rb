@@ -41,7 +41,6 @@ module Daemons
     # all running instances of the application and populates the application array.
     #
     def setup
-      puts pidfile_dir
       @applications = find_applications(pidfile_dir())
     end
     
